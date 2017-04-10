@@ -7,6 +7,12 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Distributed;
+using WebSessionDemo.Middlewares;
+using WebSessionDemo.Interfaces;
+using WebSessionDemo.Services;
+using WebSessionDemo.Attributes;
+using Microsoft.Extensions.Caching.Redis;
 
 namespace WebSessionDemo
 {
@@ -27,13 +33,25 @@ namespace WebSessionDemo
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            // Add framework services.
+            services.AddSingleton<IDistributedCache>(factory =>
+            {
+                var cache = new RedisCache(new RedisCacheOptions
+                {
+                    Configuration = Configuration["redis:ConnectionString"],
+                    InstanceName = Configuration["redis:Instance"]
+                });
+
+                return cache;
+            });
+
+            services.AddSingleton<ICacheService, RedisCacheService>();
+           
             services.AddMvc();
 
             services.AddDistributedRedisCache(option =>
             {
-                option.Configuration = "localhost:6379";
-                option.InstanceName = string.Empty;
+                option.Configuration = Configuration["redis:ConnectionString"];
+                option.InstanceName = Configuration["redis:Instance"];
             });
 
             services.AddSession(option =>
@@ -42,12 +60,16 @@ namespace WebSessionDemo
                 option.CookieName = "azure.websession";
                 option.IdleTimeout = TimeSpan.FromSeconds(20);
             });
+
+            services.AddTransient<CacheAttribute>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
             app.UseSession();
+            app.UseMiddleware<CacheMiddleware>();
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
