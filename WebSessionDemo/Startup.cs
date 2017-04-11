@@ -12,6 +12,7 @@ using WebSessionDemo.Attributes;
 
 namespace WebSessionDemo
 {
+    using Microsoft.AspNetCore.Http;
     using StackExchange.Redis;
 
     public class Startup
@@ -34,6 +35,16 @@ namespace WebSessionDemo
             services.AddSingleton<ICacheService, RedisCacheService>();
             
             services.AddMvc();
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("ReadPolicy", policyBuilder =>
+                {
+                    policyBuilder.RequireAuthenticatedUser()
+                        .RequireAssertion(context => context.User.HasClaim("Read", "true"))
+                        .Build();
+                });
+            });
 
             services.AddDistributedRedisCache(option =>
                 {
@@ -75,6 +86,16 @@ namespace WebSessionDemo
             {
                 app.UseExceptionHandler("/Home/Error");
             }
+
+            app.UseCookieAuthentication(new CookieAuthenticationOptions
+            {
+                AuthenticationScheme = "Cookies",
+                LoginPath = new PathString("/"),
+                AccessDeniedPath = new PathString("/Home/Forbidden"),
+                AutomaticAuthenticate = true,
+                AutomaticChallenge = true,
+                ExpireTimeSpan = TimeSpan.FromSeconds(20)
+            });
 
             app.UseStaticFiles();
 

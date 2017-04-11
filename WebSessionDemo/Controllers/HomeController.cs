@@ -5,14 +5,22 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using WebSessionDemo.Attributes;
+using Microsoft.AspNetCore.Authorization;
+using StackExchange.Redis;
 
 namespace WebSessionDemo.Controllers
 {
     public class HomeController : Controller
     {
+        private readonly IDatabase redis;
+
+        public HomeController(IDatabase db)
+        {
+            this.redis = db;
+        }
+
         public IActionResult Index()
         {
-            this.HttpContext.Session.SetString("demo", "demo");
             return this.View();
         }
 
@@ -24,10 +32,23 @@ namespace WebSessionDemo.Controllers
             return this.View();
         }
 
+        [Authorize]
         public IActionResult Contact()
         {
             this.ViewData["Message"] = "Your contact page.";
 
+            return this.View();
+        }
+
+        public IActionResult SharedSet()
+        {
+            this.redis.StringSetAsync($"Redis:Shared", "test", TimeSpan.FromSeconds(10), flags: CommandFlags.FireAndForget);
+            return this.RedirectToAction("Shared");
+        }
+
+        public async Task<IActionResult> Shared()
+        {
+            this.ViewData["data"] = await this.redis.StringGetAsync($"Redis:Shared");
             return this.View();
         }
 
