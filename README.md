@@ -2,11 +2,11 @@
 
 ## Azure Bootcamp 2017 Azure Redis Demo
 
-## Redis Session
+### Redis Session
 
-## Redis output cache
+### Redis output cache
 
-### Reference
+#### Reference
 
 [ASP.NET Core Redis HTML Cache blog](http://zablo.net/blog/post/asp-net-core-redis-html-cache)
 
