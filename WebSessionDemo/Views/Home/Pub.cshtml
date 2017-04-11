@@ -1,0 +1,5 @@
+﻿@using (Html.BeginForm("Pub", "Home", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
+{
+    @Html.TextBox("message");
+    <input type="submit" value="送出" />
+}

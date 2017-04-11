@@ -52,6 +52,18 @@ namespace WebSessionDemo.Controllers
             return this.View();
         }
 
+        public IActionResult Pub()
+        {
+            return this.View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Pub(string message)
+        {
+            await this.redis.PublishAsync("AzureRedisPub", message);
+            return this.RedirectToAction("Pub");
+        }
+        
         public IActionResult Error()
         {
             return this.View();
