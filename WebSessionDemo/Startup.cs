@@ -35,6 +35,12 @@ namespace WebSessionDemo
             
             services.AddMvc();
 
+            services.AddDistributedRedisCache(option =>
+                {
+                    option.Configuration = this.Configuration["redis:ConnectionString"];
+                    option.InstanceName = this.Configuration["redis:SessionInstance"];
+                });
+
             services.AddSingleton<IDatabase>(
                 func =>
                     {
@@ -45,7 +51,7 @@ namespace WebSessionDemo
             services.AddSession(option =>
             {
                 option.CookieHttpOnly = true;
-                option.CookieName = "azure.websession";
+                option.CookieName = ".azure.web.session";
                 option.IdleTimeout = TimeSpan.FromSeconds(20);
             });
 

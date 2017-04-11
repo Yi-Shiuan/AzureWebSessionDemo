@@ -23,21 +23,20 @@ namespace WebSessionDemo.Services
 
         public Task Store<T>(string key, T content, int duration = 60)
         {
-            var serializer = new JsonSerializer();
             byte[] data;
 
             using (var ms = new MemoryStream())
-            using (StreamWriter writer = new StreamWriter(ms))
-            using (JsonTextWriter jsonWriter = new JsonTextWriter(writer))
+            using (var writer = new StreamWriter(ms))
+            using (var jsonWriter = new JsonTextWriter(writer))
             {
-                JsonSerializer ser = new JsonSerializer();
+                var ser = new JsonSerializer();
                 ser.Serialize(jsonWriter, content);
                 jsonWriter.Flush();
                 data = ms.ToArray();
             }
 
             return this.Cache.StringSetAsync(
-                key,
+                $"Web:Cache:{key}",
                 data,
                 TimeSpan.FromSeconds(duration),
                 flags: CommandFlags.FireAndForget);
@@ -45,7 +44,7 @@ namespace WebSessionDemo.Services
 
         public async Task<T> Get<T>(string key) where T : class
         {
-            var data = await this.Cache.StringGetAsync(key);
+            var data = await this.Cache.StringGetAsync($"Web:Cache:{key}");
 
             if (data.IsNullOrEmpty)
             {

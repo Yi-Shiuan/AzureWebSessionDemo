@@ -9,6 +9,8 @@ using WebSessionDemo.Interfaces;
 
 namespace WebSessionDemo.Attributes
 {
+    using Microsoft.AspNetCore.Routing;
+
     public class CacheAttribute : ActionFilterAttribute
     {
         protected ICacheService CacheService { get; set; }
@@ -18,7 +20,7 @@ namespace WebSessionDemo.Attributes
         public override void OnResultExecuted(ResultExecutedContext context)
         {
             this.GetServices(context);
-            var cacheKey = context.HttpContext.Request.GetEncodedUrl();
+            var cacheKey = $"{context.HttpContext.Request.HttpContext.GetRouteData().Values["controller"]}{context.HttpContext.Request.HttpContext.GetRouteData().Values["action"]}";
             var httpResponse = context.HttpContext.Response;
             var responseStream = httpResponse.Body;
 
@@ -37,6 +39,7 @@ namespace WebSessionDemo.Attributes
                 });
 
             }
+
             base.OnResultExecuted(context);
         }
 
@@ -53,8 +56,7 @@ namespace WebSessionDemo.Attributes
         public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             this.GetServices(context);
-            var requestUrl = context.HttpContext.Request.GetEncodedUrl();
-            var cacheKey = requestUrl;
+            var cacheKey = $"{context.HttpContext.Request.HttpContext.GetRouteData().Values["controller"]}{context.HttpContext.Request.HttpContext.GetRouteData().Values["action"]}";
             var cachedResult = await this.CacheService.Get<string>(cacheKey);
             var contentType = await this.CacheService.Get<string>(cacheKey + "_contentType");
             var statusCode = await this.CacheService.Get<string>(cacheKey + "_statusCode");
@@ -79,10 +81,6 @@ namespace WebSessionDemo.Attributes
                     responseStream.Flush();
                     context.Result = new ContentResult { Content = cachedResult };
                 }
-            }
-            else
-            {
-                //cache miss
             }
 
             await base.OnActionExecutionAsync(context, next);
