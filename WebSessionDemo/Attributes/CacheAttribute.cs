@@ -2,9 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WebSessionDemo.Interfaces;
@@ -13,12 +11,13 @@ namespace WebSessionDemo.Attributes
 {
     public class CacheAttribute : ActionFilterAttribute
     {
-        public ICacheService CacheService { set; get; }
+        protected ICacheService CacheService { get; set; }
 
-        public int Duration { set; get; }
+        public int Duration { get; set; }
         
         public override void OnResultExecuted(ResultExecutedContext context)
         {
+            this.GetServices(context);
             var cacheKey = context.HttpContext.Request.GetEncodedUrl();
             var httpResponse = context.HttpContext.Response;
             var responseStream = httpResponse.Body;
@@ -41,8 +40,19 @@ namespace WebSessionDemo.Attributes
             base.OnResultExecuted(context);
         }
 
+        public override void OnResultExecuting(ResultExecutingContext context)
+        {
+            if (context.Result is ContentResult)
+            {
+                context.Cancel = true;
+            }
+
+            base.OnResultExecuting(context);
+        }
+
         public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
+            this.GetServices(context);
             var requestUrl = context.HttpContext.Request.GetEncodedUrl();
             var cacheKey = requestUrl;
             var cachedResult = await CacheService.Get<string>(cacheKey);
@@ -76,6 +86,11 @@ namespace WebSessionDemo.Attributes
             }
 
             await base.OnActionExecutionAsync(context, next);
+        }
+
+        protected void GetServices(FilterContext context)
+        {
+            CacheService = context.HttpContext.RequestServices.GetService(typeof(ICacheService)) as ICacheService;
         }
     }
 }

@@ -43,6 +43,12 @@ namespace WebSessionDemo.Services
         public async Task<T> Get<T>(string key) where T : class
         {
             var data = await Cache.GetAsync(key);
+
+            if(data == null)
+            {
+                return null;
+            }
+
             var serializer = new JsonSerializer();
             T result;
 
