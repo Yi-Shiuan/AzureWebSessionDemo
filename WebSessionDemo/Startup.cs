@@ -1,21 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Caching.Distributed;
 using WebSessionDemo.Middlewares;
 using WebSessionDemo.Interfaces;
 using WebSessionDemo.Services;
 using WebSessionDemo.Attributes;
-using Microsoft.Extensions.Caching.Redis;
+
 
 namespace WebSessionDemo
 {
+    using StackExchange.Redis;
+
     public class Startup
     {
         public Startup(IHostingEnvironment env)
@@ -25,7 +23,7 @@ namespace WebSessionDemo
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
-            Configuration = builder.Build();
+            this.Configuration = builder.Build();
         }
 
         public IConfigurationRoot Configuration { get; }
@@ -33,27 +31,17 @@ namespace WebSessionDemo
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<IDistributedCache>(factory =>
-            {
-                var cache = new RedisCache(new RedisCacheOptions
-                {
-                    Configuration = Configuration["redis:ConnectionString"],
-                    InstanceName = Configuration["redis:Instance"]
-                });
-
-                return cache;
-            });
-
             services.AddSingleton<ICacheService, RedisCacheService>();
-           
+            
             services.AddMvc();
 
-            services.AddDistributedRedisCache(option =>
-            {
-                option.Configuration = Configuration["redis:ConnectionString"];
-                option.InstanceName = Configuration["redis:Instance"];
-            });
-
+            services.AddSingleton<IDatabase>(
+                func =>
+                    {
+                        var redis = ConnectionMultiplexer.Connect(this.Configuration["redis:ConnectionString"]);
+                        return redis.GetDatabase();
+                    });
+            
             services.AddSession(option =>
             {
                 option.CookieHttpOnly = true;
@@ -70,13 +58,12 @@ namespace WebSessionDemo
         {
             app.UseMiddleware<CacheMiddleware>();
             app.UseSession();
-            loggerFactory.AddConsole(Configuration.GetSection("Logging"));
+            loggerFactory.AddConsole(this.Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                //app.UseBrowserLink();
             }
             else
             {

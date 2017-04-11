@@ -31,9 +31,9 @@ namespace WebSessionDemo.Attributes
                 var statusCode = httpResponse.StatusCode.ToString();
                 Task.Factory.StartNew(() =>
                 {
-                    CacheService.Store(cacheKey + "_contentType", contentType, Duration);
-                    CacheService.Store(cacheKey + "_statusCode", statusCode, Duration);
-                    CacheService.Store(cacheKey, toCache, Duration);
+                    this.CacheService.Store(cacheKey + "_contentType", contentType, this.Duration);
+                    this.CacheService.Store(cacheKey + "_statusCode", statusCode, this.Duration);
+                    this.CacheService.Store(cacheKey, toCache, this.Duration);
                 });
 
             }
@@ -55,9 +55,9 @@ namespace WebSessionDemo.Attributes
             this.GetServices(context);
             var requestUrl = context.HttpContext.Request.GetEncodedUrl();
             var cacheKey = requestUrl;
-            var cachedResult = await CacheService.Get<string>(cacheKey);
-            var contentType = await CacheService.Get<string>(cacheKey + "_contentType");
-            var statusCode = await CacheService.Get<string>(cacheKey + "_statusCode");
+            var cachedResult = await this.CacheService.Get<string>(cacheKey);
+            var contentType = await this.CacheService.Get<string>(cacheKey + "_contentType");
+            var statusCode = await this.CacheService.Get<string>(cacheKey + "_statusCode");
             if (!string.IsNullOrEmpty(cachedResult) && !string.IsNullOrEmpty(contentType) &&
                 !string.IsNullOrEmpty(statusCode))
             {
@@ -90,7 +90,7 @@ namespace WebSessionDemo.Attributes
 
         protected void GetServices(FilterContext context)
         {
-            CacheService = context.HttpContext.RequestServices.GetService(typeof(ICacheService)) as ICacheService;
+            this.CacheService = context.HttpContext.RequestServices.GetService(typeof(ICacheService)) as ICacheService;
         }
     }
 }

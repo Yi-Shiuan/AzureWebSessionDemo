@@ -12,28 +12,28 @@ namespace WebSessionDemo.Controllers
     {
         public IActionResult Index()
         {
-            HttpContext.Session.SetString("demo", "demo");
-            return View();
+            this.HttpContext.Session.SetString("demo", "demo");
+            return this.View();
         }
 
-        [Cache(Duration = 30)]
+        [Cache(Duration = 10)]
         public IActionResult About()
         {
-            ViewData["time"] = DateTime.Now;
+            this.ViewData["time"] = DateTime.Now;
 
-            return View();
+            return this.View();
         }
 
         public IActionResult Contact()
         {
-            ViewData["Message"] = "Your contact page.";
+            this.ViewData["Message"] = "Your contact page.";
 
-            return View();
+            return this.View();
         }
 
         public IActionResult Error()
         {
-            return View();
+            return this.View();
         }
     }
 }

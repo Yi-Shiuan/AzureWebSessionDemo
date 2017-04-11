@@ -10,21 +10,23 @@ using WebSessionDemo.Interfaces;
 
 namespace WebSessionDemo.Services
 {
+    using StackExchange.Redis;
+
     public class RedisCacheService : ICacheService
     {
-        protected IDistributedCache Cache;
+        protected IDatabase Cache;
 
-        public RedisCacheService(IDistributedCache cache)
+        public RedisCacheService(IDatabase cache)
         {
-            Cache = cache;
+            this.Cache = cache;
         }
-        
+
         public Task Store<T>(string key, T content, int duration = 60)
         {
             var serializer = new JsonSerializer();
             byte[] data;
 
-            using(var ms = new MemoryStream())
+            using (var ms = new MemoryStream())
             using (StreamWriter writer = new StreamWriter(ms))
             using (JsonTextWriter jsonWriter = new JsonTextWriter(writer))
             {
@@ -34,17 +36,18 @@ namespace WebSessionDemo.Services
                 data = ms.ToArray();
             }
 
-            return Cache.SetAsync(key, data, new DistributedCacheEntryOptions
-            {
-                AbsoluteExpiration = DateTimeOffset.Now.Add(TimeSpan.FromSeconds(duration))
-            });
+            return this.Cache.StringSetAsync(
+                key,
+                data,
+                TimeSpan.FromSeconds(duration),
+                flags: CommandFlags.FireAndForget);
         }
 
         public async Task<T> Get<T>(string key) where T : class
         {
-            var data = await Cache.GetAsync(key);
+            var data = await this.Cache.StringGetAsync(key);
 
-            if(data == null)
+            if (data.IsNullOrEmpty)
             {
                 return null;
             }
@@ -52,7 +55,7 @@ namespace WebSessionDemo.Services
             var serializer = new JsonSerializer();
             T result;
 
-            using(var ms = new MemoryStream(data))
+            using (var ms = new MemoryStream(data))
             using (var sr = new StreamReader(ms))
             using (var jsonTextReader = new JsonTextReader(sr))
             {
